@@ -13,6 +13,8 @@ export interface UserInterface {
   ethereumAccount?: string | any;
   bitcoinAddress?: string;
   bitcoinAccount?: string | any;
+  solanaAddress?: string;
+  solanaAccount?: string | any;
   dob?: Date;
   deleted?: boolean;
   verifiedemail?: boolean;

@@ -15,6 +15,8 @@
   "dependencies": {
     "@bull-board/api": "^3.6.0",
     "@bull-board/express": "^3.6.0",
+    "@pancakeswap/sdk": "^2.4.5",
+    "@solana/web3.js": "^1.44.3",
     "@types/bcryptjs": "^2.4.2",
     "@types/big.js": "^6.1.2",
     "@types/bitcore-lib": "^0.15.3",

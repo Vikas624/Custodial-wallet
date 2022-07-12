@@ -34,5 +34,9 @@ routes.post(
   validate(validator.sendEth),
   controller(wallet.sendEth)
 );
+// routes.get(
+//   "/sign-message",
+//   controller(wallet.sendSignature)
+// )
 
 export default routes;

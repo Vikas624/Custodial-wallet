@@ -114,7 +114,7 @@ export const logOtherDevicesOut = async (
 
     const data: any = jwt.generate({
       payload: user.id,
-      loginValidFrom: user.loginValidFrom,
+      expiresIn: user.loginValidFrom,
     });
 
     return {

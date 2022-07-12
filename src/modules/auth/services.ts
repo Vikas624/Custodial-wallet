@@ -79,6 +79,7 @@ export const signIn = async (
     const user: UserSchema = await User.findOne({
       where: { email },
     });
+    console.log('user', user);
 
     if (!user || !bcrypt.compareSync(password, user.password)) {
       return { status: false, message: "Invalid username or password" };
@@ -99,6 +100,9 @@ export const signIn = async (
         firstname: user.firstname,
         email: user.email,
       });
+      console.log('text', text);
+      console.log('html', html);
+
       mail.pepipost.send({
         to: user.email,
         subject: "Verify your email",
@@ -111,7 +115,7 @@ export const signIn = async (
 
     const data = jwt.generate({
       payload: user.id,
-      loginValidFrom: user.loginValidFrom,
+      expiresIn: user.loginValidFrom,
     });
 
     return { status: true, message: "Login successful", data };
@@ -316,7 +320,7 @@ export const resetPassword = async (
     }
 
     let update: any = { password };
-    if (logOtherDevicesOut) update.loginValidFrom = Date.now();
+    if (logOtherDevicesOut) update.expiresIn = Date.now();
 
     await user.update(update);
 

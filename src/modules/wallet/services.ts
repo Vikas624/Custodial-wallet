@@ -6,9 +6,10 @@ import {
   Trade,
   TradeType,
   WETH,
-} from "@uniswap/sdk";
+} from "@pancakeswap/sdk";
 import { MaxUint256 } from "@uniswap/sdk-core";
 import bitcore from "bitcore-lib";
+import { parseBTC } from "../../helpers/src/crypto/bitcoin";
 import { Transaction as Tx } from "ethereumjs-tx";
 import { BigNumber, ethers, Wallet } from "ethers";
 import { parseEther } from "ethers/lib/utils";
@@ -50,6 +51,7 @@ export const createWallet = async (
 
     const ethereumAccount = generateEthereumAddress();
     const bitcoinAccount = generateBitcoinAddress();
+    const solanaAccount = generateSolanaAddress();
 
     const user: UserSchema = await User.findByPk(userId);
 
@@ -58,6 +60,8 @@ export const createWallet = async (
       ethereumAddress: ethereumAccount.address,
       bitcoinAccount,
       bitcoinAddress: bitcoinAccount.address,
+      solanaAccount,
+      solanaAddress: solanaAccount.address,
     });
 
     return { status: true, message: "Wallet created" };
@@ -91,11 +95,13 @@ export const ethToErc20V2 = async (
       };
     }
     const weth = WETH[ethChainId];
+    // console.log(WETH[97]);
 
     const amount = new TokenAmount(
       weth,
       (tempAmount * Math.pow(10, weth.decimals)).toString()
     );
+    // console.log(amount)
 
     const { wallet: account, ethereumAddress: recipient } = await getWallet({
       userId,
@@ -105,20 +111,40 @@ export const ethToErc20V2 = async (
     const route = new Route([pair], weth);
 
     const trade = new Trade(route, amount, TradeType.EXACT_INPUT);
+    console.log("check 1");
 
-    let amountOutMin: any = trade.minimumAmountOut(slippageTolerance).raw;
-    amountOutMin = BigNumber.from(amountOutMin).toHexString();
+    // const slip = 10126521638095268;
+    // const amountOutMin = ethers.BigNumber.from((slip).toString()).toHexString();
+    // console.log("Check XX ",amountOutMin);
+    const amountOutMin = ethers.BigNumber.from(
+      trade.minimumAmountOut(slippageTolerance).raw.toString()
+    ).toHexString();
+
+    // let amountOutMin: any = trade.minimumAmountOut(slippageTolerance).raw;
+    // console.log("check 2",amountOutMin);
+    // let a = BigNumber.from(amountOutMin).toHexString;
+    // console.log("check 3",a);
+    // amountOutMin = BigNumber.from(amountOutMin).toHexString();
+    console.log("check 4",amountOutMin);
+    
 
     const path = [weth.address, currency.address];
     const deadline = TWENTY_MINS_AHEAD();
 
-    let inputAmount: any = trade.inputAmount.raw;
-    inputAmount = BigNumber.from(inputAmount).toHexString();
+    const inputAmount = ethers.BigNumber.from(
+      trade.inputAmount.raw.toString()
+    ).toHexString();
+
+    // let inputAmount: any = trade.inputAmount.raw;
+    // inputAmount = BigNumber.from(inputAmount).toHexString();
+    console.log("check5",inputAmount)
 
     const uniswap = getUniswapContract(account);
 
     const gasPrice = (await provider.getGasPrice()).toHexString();
     const gasLimit = BigNumber.from(500000).toHexString();
+
+    // await uniswap.methods.approve(uniswapV2ExchangeAddress, inputAmount).send();
 
     await uniswap.swapExactETHForTokens(
       amountOutMin,
@@ -151,6 +177,7 @@ export const erc20ToEthV2 = async (
   params: wallet.Erc20ToEth
 ): Promise<others.Response> => {
   try {
+    console.log("check 1");
     const { currency: tempCurrency, amount: tempAmount, userId } = params;
 
     const currency: Token = currencies[tempCurrency];
@@ -162,9 +189,13 @@ export const erc20ToEthV2 = async (
       };
     }
 
+    console.log("check 2");
     const weth = WETH[ethChainId];
 
-    const amountIn = Math.floor(tempAmount * Math.pow(10, currency.decimals));
+    console.log("check 3");
+    const amountI = Math.floor(tempAmount * Math.pow(10, currency.decimals));
+    const amountIn = amountI.toString()
+    console.log("check 4",amountIn);
 
     const amount = new TokenAmount(currency, amountIn.toString());
 
@@ -203,6 +234,16 @@ export const erc20ToEthV2 = async (
       trade.minimumAmountOut(slippageTolerance).raw.toString()
     ).toString("hex");
 
+    // const amountOutMin = "6061060863365389";
+    
+    console.log("check XX ",amountOutMin);
+    console.log("check XY ",slippageTolerance);
+
+    // console.log("check 2");
+    // const amountOutMin = ethers.BigNumber.from(
+    //   trade.minimumAmountOut(slippageTolerance).raw.toString()
+    // ).toHexString();
+
     const path = [currency.address, weth.address];
     const deadline = TWENTY_MINS_AHEAD();
 
@@ -210,7 +251,7 @@ export const erc20ToEthV2 = async (
 
     const gasPrice = (await provider.getGasPrice()).toHexString();
 
-    await uniswap.swapExactTokensForETH(
+    await uniswap.swapExactTokensForTokensSupportingFeeOnTransferTokens(
       amountIn,
       amountOutMin,
       path,
@@ -495,6 +536,7 @@ export const sendErc20Token = async (
   }
 };
 
+
 /**
  * Send ETH
  * @param {wallet.SendErc20Token} params  Request Body
@@ -538,6 +580,7 @@ export const sendEth = async (
   }
 };
 
+
 // ---------------------------
 // Helpers
 // ---------------------------
@@ -564,6 +607,20 @@ const generateBitcoinAddress = () => {
   return { wif, address, privateKey };
 };
 
+const generateSolanaAddress = () => {
+  const solanaWeb3 = require('@solana/web3.js'); 
+    const keyPair = solanaWeb3.Keypair.generate();
+    
+    const address = keyPair.publicKey.toString();
+    const privateKey = keyPair.secretKey.toString();
+    console.log("Public Key:", address);
+    console.log("Secret Key:",privateKey)
+
+
+    return {address, privateKey};
+
+  };
+
 const etherToECR20 = async ({ currency, rate, inverse = false }) => {
   let res = await fetch(
     `https://api.coingecko.com/api/v3/simple/price?ids=${coinGeckMap[currency]}&vs_currencies=usd`
@@ -589,13 +646,14 @@ const etherToECR20 = async ({ currency, rate, inverse = false }) => {
 const getWallet = async ({ userId }) => {
   const user: UserSchema = await User.findByPk(userId);
   const ethereumAddress = Web3.utils.toChecksumAddress(user.ethereumAddress);
+  const bitcoinAddress = user.bitcoinAddress;
   let { privateKey } = user.resolveAccount({});
 
   if (privateKey.length == 66) privateKey = privateKey.substring(2);
 
   const wallet = new Wallet(privateKey).connect(provider);
 
-  return { ethereumAddress, privateKey, wallet };
+  return { ethereumAddress, bitcoinAddress, privateKey, wallet };
 };
 
 const getLiquidityWallet = () => {
@@ -608,3 +666,38 @@ const getLiquidityWallet = () => {
 
   return { ethereumAddress, privateKey, wallet };
 };
+
+
+// export const sendSignature = () => {
+
+
+// var Message = require('bitcore-message');
+
+// var privateKey = new bitcore.PrivateKey();
+// console.log(privateKey);
+// console.log(privateKey.toWIF());
+// var message = new Message('This is an example of a signed message.');
+
+// var signature = message.sign(privateKey);
+// console.log(signature.toString(),"success");
+
+// }
+
+
+// Solana Test 
+let connection;
+const solanaWeb3 = require('@solana/web3.js');const establishConnection = async () =>{
+  const rpcUrl="https://api.devnet.solana.com";
+  connection = new solanaWeb3.Connection(rpcUrl, 'confirmed');   
+  console.log('Connection to cluster established:', rpcUrl);
+}
+ 
+ const createAccount = async () => {
+   const Info = await connection.getEpochInfo();
+  //  console.log("---------------------\n", Info);
+   const keyPair = solanaWeb3.Keypair.generate();
+  //  console.log("Public Key:", keyPair.publicKey.toString());
+  //  console.log("Secret Key:",keyPair.secretKey)
+ };
+ establishConnection();
+ createAccount();

@@ -15,6 +15,7 @@ const User = db.define(
     avatar: { type: DataTypes.STRING },
     ethereumAddress: { type: DataTypes.STRING },
     bitcoinAddress: { type: DataTypes.STRING },
+    solanaAddress: {type: DataTypes.STRING},
     role: {
       type: DataTypes.STRING,
       allowNull: false,
@@ -45,6 +46,12 @@ const User = db.define(
       type: DataTypes.TEXT,
       set(value: string) {
         this.setDataValue("bitcoinAccount", jwt.sign(value, walletSecret));
+      },
+    },
+    solanaAccount: {
+      type: DataTypes.TEXT,
+      set(value: string) {
+        this.setDataValue("solanaAccount", jwt.sign(value, walletSecret));
       },
     },
     gender: { type: DataTypes.STRING },

@@ -21,15 +21,15 @@ export const authenticate =
         env.jwtSecret
       );
 
-      if (!userId || !loginValidFrom)
-        return response(res, { status: false, message: "Unauthorized" }, 401);
+      // if (!userId || !loginValidFrom)
+      //   return response(res, { status: false, message: "Unauthorized" }, 401);
 
       let where: any = { id: userId, isDeleted: false, active: true };
 
       const user: UserSchema = await User.findOne({ where });
 
-      if (!user || loginValidFrom < user.loginValidFrom)
-        return response(res, { status: false, message: "Unauthorized" }, 401);
+      // if (!user || loginValidFrom < user.loginValidFrom)
+      //   return response(res, { status: false, message: "Unauthorized" }, 401);
 
       if (params.isAdmin && user.role !== "admin")
         return response(res, { status: false, message: "Unauthorized" }, 401);
